@@ -10,7 +10,7 @@ In this exercise, you'll establish a solid foundation for enterprise data engine
 - A **code workspace** for notebooks, pipelines and orchestration
 - A **data workspace** for the lakehouse and data layers
 
-Each workspace will be properly configured with documentation, security controls, and capacity management to ensure optimal governance and maintainability.
+Each workspace will be properly configured with descriptions, security controls, and capacity management to ensure optimal governance and maintainability.
 
 ## Key Concepts
 
@@ -21,11 +21,11 @@ Each workspace will be properly configured with documentation, security controls
 
 ### Medallion Architecture
 The Medallion Architecture organizes data into three progressively refined layers:
-- `LH_Data_Landingzone`: Raw, unprocessed data ingestion layer
-- `LH_Bronze_Layer`: Cleaned and standardized data layer
-- `LH_Silver_Layer`: Aggregated and business-ready data layer
+- `LH_Data_Landingzone`
+- `LH_Bronze_Layer`
+- `LH_Silver_Layer`
 
-Each layer includes descriptive metadata identifying its purpose, data types, and expected use cases.
+Each layer includes descriptive metadata identifying its purpose in the description section.
 
 ### Notebooks
 Create a well-structured, empty notebook in the code workspace as a template for data ingestion and transformation workflows. This will serve as the foundation for subsequent exercises.
