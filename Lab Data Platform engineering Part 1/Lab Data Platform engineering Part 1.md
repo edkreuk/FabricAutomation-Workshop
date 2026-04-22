@@ -1,55 +1,39 @@
-🧪 Exercise 1 – Environment & Architecture Setup 
+🧪 Exercise - Data Platform Engineering Part 1
 
-Goal 
+## Objective
 
-Set up a well-documented Fabric workspace and implement a Medallion Architecture using parameters
+Build a well-organized Fabric workspace with a Medallion Architecture using parameterized configuration for scalability and governance.
 
-We need to have a workspace where we can store all our code and one where we want to store the lakehouse.
-Every Workspace needs to have a clear description of its purpose. This is important for governance and maintenance.
-For security and access control, we will assign a Workspace Identity to the workspace. This allows us to manage permissions and access to resources in a more secure way.
-Every workspace needs to have a capacity assigned which is set by a parameter. This allows us to easily change the capacity if needed without having to go into the workspace settings.
+## Overview
 
-The Medallion Architecture is a common data architecture pattern that organizes data into different layers based on its level of refinement and quality. The layers typically include:
-'LH_Data_Landingzone','LH_Bronze_Layer','LH_Silver_Layer'
+In this exercise, you'll establish a solid foundation for enterprise data engineering by creating two specialized workspaces:
+- A **code workspace** for notebooks, pipelines and orchestration
+- A **data workspace** for the lakehouse and data layers
 
-Every lakehouse should have a clear description of its purpose and the type of data it contains. This helps with governance and maintenance.
+Each workspace will be properly configured with documentation, security controls, and capacity management to ensure optimal governance and maintainability.
 
-In the code we want to have an empty Notebook with a clear description of its purpose. Notebooks will be used for data ingestion and transformation in later exercises.
+## Key Concepts
 
-Tasks 
+### Workspace Configuration
+- **Description**: Document the purpose and scope of each workspace for governance and team collaboration
+- **Workspace Identity**: Enable secure, role-based access control to resources and services
+- **Capacity Assignment**: Use parameters to dynamically assign compute capacity, making it easy to adjust resources without manual configuration changes
 
-Workspace configuration 
+### Medallion Architecture
+The Medallion Architecture organizes data into three progressively refined layers:
+- `LH_Data_Landingzone`: Raw, unprocessed data ingestion layer
+- `LH_Bronze_Layer`: Cleaned and standardized data layer
+- `LH_Silver_Layer`: Aggregated and business-ready data layer
 
-Assign a Workspace Identity 
+Each layer includes descriptive metadata identifying its purpose, data types, and expected use cases.
 
-Add a clear workspace description describing purpose and ownership 
+### Notebooks
+Create a well-structured, empty notebook in the code workspace as a template for data ingestion and transformation workflows. This will serve as the foundation for subsequent exercises.
 
-Medallion Architecture setup 
+## Expected Outcome
 
-Design a Medallion Architecture with the following layers: 
-
-LDZ – Landing Zone 
-
-BRZ – Bronze 
-
-SLV – Silver 
-
-GLD – Gold 
-
-Use parameters to drive naming and configuration 
-
-Lakehouse creation & documentation 
-
-Create a Lakehouse for each layer (LDZ, BRZ, SLV, GLD) 
-
-Add a description to each Lakehouse explaining its role 
-
-Notebook creation 
-
-Create a new Notebook 
-
-Add a clear Notebook description explaining its purpose in the platform 
-
-✅ Outcome: A documented workspace, medallion-based lakehouse structure, and a prepared notebook. 
+✅ A documented, parameterized workspace structure
+✅ A three-tier Medallion Architecture with clear data lineage
+✅ A prepared notebook ready for data operations 
 
  
