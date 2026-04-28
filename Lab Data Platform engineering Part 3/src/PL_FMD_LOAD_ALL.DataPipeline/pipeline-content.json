@@ -1,0 +1,80 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "ExecutePipeline",
+        "typeProperties": {
+          "pipeline": {
+            "referenceName": "44eb45e8-db7c-ade0-44aa-5a2941e99633",
+            "type": "PipelineReference"
+          },
+          "parameters": {},
+          "waitOnCompletion": true
+        },
+        "policy": {
+          "secureInput": false
+        },
+        "name": "PL_FMD_LOAD_LANDINGZONE",
+        "dependsOn": []
+      },
+      {
+        "type": "ExecutePipeline",
+        "typeProperties": {
+          "pipeline": {
+            "referenceName": "c2614891-28b7-a603-4a7c-c9e1d28707d6",
+            "type": "PipelineReference"
+          },
+          "parameters": {},
+          "waitOnCompletion": true
+        },
+        "policy": {
+          "secureInput": false
+        },
+        "name": "PL_FMD_LOAD_BRONZE",
+        "dependsOn": [
+          {
+            "activity": "PL_FMD_LOAD_LANDINGZONE",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "ExecutePipeline",
+        "typeProperties": {
+          "pipeline": {
+            "referenceName": "a1084b6c-dbbb-8633-474f-69ce52e23fdd",
+            "type": "PipelineReference"
+          },
+          "parameters": {},
+          "waitOnCompletion": true
+        },
+        "policy": {
+          "secureInput": false
+        },
+        "name": "PL_FMD_LOAD_SILVER",
+        "dependsOn": [
+          {
+            "activity": "PL_FMD_LOAD_BRONZE",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      }
+    ],
+    "libraryVariables": {
+      "VAR_CONFIG_FMD_fmd_config_database_guid": {
+        "type": "String",
+        "variableName": "fmd_config_database_guid",
+        "libraryName": "VAR_CONFIG_FMD"
+      },
+      "VAR_CONFIG_FMD_fmd_config_workspace_guid": {
+        "type": "String",
+        "variableName": "fmd_config_workspace_guid",
+        "libraryName": "VAR_CONFIG_FMD"
+      }
+    }
+  }
+}

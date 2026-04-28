@@ -1,0 +1,661 @@
+# Fabric notebook source
+
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {
+# META     "lakehouse": {
+# META       "default_lakehouse_name": "",
+# META       "default_lakehouse_workspace_id": ""
+# META     },
+# META     "environment": {}
+# META   }
+# META }
+
+# MARKDOWN ********************
+
+# # FMD Load Landing Zone to Bronze Notebook
+# 
+# ## Overview
+# This notebook handles the data loading process from the Landing Zone to the Bronze layer in the FMD framework. It processes source files, applies data quality checks, performs cleansing, and loads data into Bronze Delta tables.
+# 
+# ## Key Features
+# - **Source File Validation**: Checks if source files exist before processing
+# - **Data Quality Checks**: Validates primary keys and detects duplicates
+# - **Cleansing Rules**: Applies configurable cleansing rules from the framework database
+# - **Change Detection**: Uses hash columns to detect changes in data
+# - **Incremental Loading**: Supports both full and incremental load patterns
+# - **Audit Logging**: Tracks execution details in the framework database
+# - **Delta Lake Integration**: Writes data to Delta tables with optimization settings
+# 
+# ## Process Flow
+# 1. Load libraries and configuration settings
+# 2. Set up audit logging and database connections
+# 3. Read source file from Landing Zone (Parquet/CSV)
+# 4. Perform data quality checks (PK validation, duplicate detection)
+# 5. Apply cleansing rules from framework configuration
+# 6. Add hash columns for change tracking
+# 7. Execute incremental or full load to Bronze Delta table
+# 8. Update processing status and complete audit logging
+
+
+# CELL ********************
+
+config_settings=notebookutils.variableLibrary.getLibrary("VAR_CONFIG_FMD")
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# PARAMETERS CELL ********************
+
+# Set arguments
+PrimaryKeys = ""
+SourceFileType='parquet'
+IsIncremental = False
+
+SourceFilePath = ''
+SourceFileName = ''
+DataSourceNamespace = ''
+
+TargetSchema = ''
+TargetName = ''
+
+LandingzoneEntityId =""
+BronzeLayerEntityId =""
+
+
+###############################Logging Parameters###############################
+driver = '{ODBC Driver 18 for SQL Server}'
+connstring=config_settings.fmd_fabric_db_connectionstring
+database=config_settings.fmd_fabric_db_name
+
+EntityLayer='Bronze'
+result_data=''
+
+SourceLakehouse =config_settings.LH_Data_Landingzone
+TargetLakehouse =config_settings.LH_Bronze_Layer
+SourceWorkspace =config_settings.data_workspace
+TargetWorkspace =config_settings.data_workspace
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Load Libraries
+
+# CELL ********************
+
+import re
+from datetime import datetime, timezone
+import json
+from delta.tables import *
+from pyspark.sql.functions import sha2, md5, concat_ws, current_timestamp
+from pyspark.sql.types import StringType
+import struct, pyodbc
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Define Starttime
+
+# CELL ********************
+
+start_audit_time = datetime.now()
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+token =  notebookutils.credentials.getToken('https://analysis.windows.net/powerbi/api')
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+def build_exec_statement(proc_name, **params):
+    param_strs = []
+    for key, value in params.items():
+        if value is not None:
+            if isinstance(value, str):
+                param_strs.append(f"@{key}='{value}'")
+            else:
+                param_strs.append(f"@{key}={value}")
+    
+    if param_strs:
+        return f"EXEC {proc_name}, " + ", ".join(param_strs)
+    else:
+        return f"EXEC {proc_name}"
+def execute_with_outputs(exec_statement, driver, connstring, database, **params):
+    """
+    Runs the given T-SQL (optionally wrapping to capture return code).
+    Returns a dict with:
+      - result_sets: list[list[dict]]
+      - return_code: int or None
+      - out_params: dict (if you selected them)
+      - messages: list[str]
+    """
+    # Get token for Azure SQL authentication
+    token = notebookutils.credentials.getToken('https://analysis.windows.net/powerbi/api').encode("UTF-16-LE")
+    token_struct = struct.pack(f'<I{len(token)}s', len(token), token)
+
+    # Build connection
+    conn = pyodbc.connect(
+        f"DRIVER={driver};SERVER={connstring};PORT=1433;DATABASE={database};",
+        attrs_before={1256: token_struct},
+        timeout=12
+    )
+    if not exec_statement:
+        raise ValueError("proc_name (exec_statement) must not be empty.")
+
+    sql_to_run = build_exec_statement(exec_statement, **params)
+    use_wrapper = True
+
+
+    result_sets = []
+    messages = []
+    return_code = None
+    out_params = {}
+
+    try:
+        with conn.cursor() as cursor:
+            # Warm-up
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+            conn.timeout = 10
+
+            cursor.execute(sql_to_run)
+
+            # Collect result sets
+            while True:
+                if cursor.description:
+                    cols = [d[0] for d in cursor.description]
+                    rows = cursor.fetchall()
+                    result_sets.append([dict(zip(cols, r)) for r in rows])
+                if not cursor.nextset():
+                    break
+
+            # If wrapped, pick return code from the last set (and remove it from result_sets)
+            if use_wrapper and result_sets:
+                last = result_sets[-1]
+                if len(last) == 1 and "__return_code__" in last[0]:
+                    return_code = last[0]["__return_code__"]
+                    result_sets = result_sets[:-1]  # remove synthetic RC set
+
+            # If you also SELECT’ed OUTPUT params (e.g., SELECT @p AS p)
+            # you can parse them from another final small result set:
+            # Example pattern:
+            #   SELECT @out1 AS __out_out1, @out2 AS __out_out2;
+            if result_sets:
+                # Heuristic: if the final set looks like a single-row out-param bag, peel it off
+                maybe = result_sets[-1]
+                if len(maybe) == 1 and any(k.startswith("__out_") for k in maybe[0].keys()):
+                    out_params = {k.replace("__out_", ""): v for k, v in maybe[0].items()}
+                    result_sets = result_sets[:-1]
+
+            try:
+                cursor.commit()
+
+            except Exception as e:
+                print(f"Commit failed (expected for read-only operations): {e}")
+
+            except Exception:
+                pass  # commit may fail on read-only operations
+
+
+    finally:
+        try:
+            conn.close()
+
+        except Exception as e:
+            print(f"Connection cleanup failed: {e}")  # best-effort connection cleanup
+
+        except Exception:
+            pass  # best-effort connection cleanup
+
+
+    return {
+        "result_sets": result_sets,
+        "return_code": return_code,
+        "out_params": out_params,
+        "messages": messages
+    }
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Define Stored Procedures for Logging
+
+# CELL ********************
+
+# Ensure TriggerTime is formatted correctly
+TriggerTime = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+notebook_name=  notebookutils.runtime.context['currentNotebookName']
+
+
+UpsertPipelineLandingzoneEntity = (
+    f"[execution].[sp_UpsertPipelineLandingzoneEntity] "
+    f"@Filename = \"{SourceFileName}\", "
+    f"@FilePath = \"{SourceFilePath}\", "
+    f"@IsProcessed = \"True\", "
+    f"@LandingzoneEntityId = \"{LandingzoneEntityId}\""
+)
+
+InsertPipelineBronzeLayerEntity = (
+    f"[execution].[sp_UpsertPipelineBronzeLayerEntity] "
+    f"@SchemaName = \"{TargetSchema}\", "
+    f"@TableName = \"{TargetName}\", "
+    f"@IsProcessed = \"False\", "
+    f"@BronzeLayerEntityId = \"{BronzeLayerEntityId}\""
+)
+
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Set Configuration
+
+# CELL ********************
+
+#Make sure you have disabled V-Order, Bronze we want to load fast
+spark.conf.set("spark.sql.parquet.int96RebaseModeInRead", "CORRECTED")
+spark.conf.set("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
+spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "CORRECTED")
+spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "CORRECTED")
+
+spark.conf.set('spark.microsoft.delta.optimize.fast.enabled', True)
+spark.conf.set('spark.microsoft.delta.optimize.fileLevelTarget.enabled', True)
+spark.conf.set('spark.databricks.delta.autoCompact.enabled', True)
+
+spark.conf.set("spark.fabric.resourceProfile", "writeHeavy")
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Set your loading paths
+
+# CELL ********************
+
+#Set SourceFile and target Location
+source_changes_data_path = f"abfss://{SourceWorkspace}@onelake.dfs.fabric.microsoft.com/{SourceLakehouse}/Files/{SourceFilePath}/{SourceFileName}"
+print(source_changes_data_path)
+
+
+target_data_path = f"abfss://{TargetWorkspace}@onelake.dfs.fabric.microsoft.com/{TargetLakehouse}/Tables/{DataSourceNamespace}/{TargetSchema}_{TargetName}"
+print(target_data_path)
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Load new from Data Landingzone
+
+# CELL ********************
+
+if not notebookutils.fs.exists(source_changes_data_path):
+    print("❌ Source file not found. Exiting Notebook")
+    TotalRuntime = str((datetime.now() - start_audit_time)) 
+    end_audit_time =  str(datetime.now())
+    start_audit_time =str(start_audit_time)
+    result_data = {
+    "Action" : "End", "CopyOutput":{
+        "Total Runtime": TotalRuntime,
+        "TargetSchema": TargetSchema,
+        "TargetName" : TargetName,
+        "SourceFilePath" : SourceFilePath,
+        "SourceFileName" : 'FILE NOT FOUND',
+        "LandingzoneEntityId" : LandingzoneEntityId,
+        "EntityId" : BronzeLayerEntityId,
+        "StartTime" : start_audit_time,
+        "EndTime" : end_audit_time
+
+    }
+    }
+
+    
+    notebookutils.notebook.exit(result_data)
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+if SourceFileType=='csv':
+    dfDataChanged = (
+        spark.read
+            .option("header", True)            # first row has column names
+            .option("inferSchema", True)       # ask Spark to infer types
+            .option("samplingRatio", 0.1)      # sample 10% of rows; omit to scan fully
+            .csv(f"{source_changes_data_path}")
+    )
+elif SourceFileType=='xlsx':
+    # Basic read: entire first sheet, header row present, types inferred
+    import pandas as pd
+    spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "false")
+    pdf = pd.read_excel(f"{source_changes_data_path}", engine="openpyxl")
+    dfDataChanged = spark.createDataFrame(pdf)
+
+elif SourceFileType=='xls':
+    # Basic read: entire first sheet, header row present, types inferred
+    import pandas as pd
+    spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "false")
+    pdf = pd.read_excel(f"{source_changes_data_path}", engine="xlrd")
+    dfDataChanged = spark.createDataFrame(pdf)
+
+else:
+    #Read all incoming changes in Parquet format
+    dfDataChanged= spark.read\
+                    .format(SourceFileType) \
+                    .option("header","true") \
+                    .load(f"{source_changes_data_path}")
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Replace spaces with underscores in column names
+new_columns = [col.replace(' ', '') for col in dfDataChanged.columns]
+
+# Rename the columns
+dfDataChanged = dfDataChanged.toDF(*new_columns)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## DQ Checks
+
+# CELL ********************
+
+#split PKcolumns string on , ; or :
+PrimaryKeys = str(PrimaryKeys)
+
+PrimaryKeys = re.split('[, ; :]', PrimaryKeys)
+#remove potential whitespaces around Pk columns 
+PrimaryKeys = [column.strip() for column in PrimaryKeys if column != ""]
+
+key_columns = PrimaryKeys
+print(f": {', '.join(key_columns)}")
+# Check if all PK's exist in source
+for pk_column in key_columns:
+    if pk_column not in dfDataChanged.columns:
+        raise ValueError(f"PK: {pk_column} doesn't exist in the source.")
+        # Define all the Non-Key columns => HashExcludeColumns
+
+read_key_columns = [column for column in dfDataChanged.columns if column in key_columns]
+
+# Add a column with the calculated hash, easier in later stage of with multiple PK
+dfDataChanged = (dfDataChanged
+                .withColumn("HashedPKColumn", sha2(concat_ws("||", *read_key_columns), 256)))
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Check for Duplicates
+
+# CELL ********************
+
+dup_count = dfDataChanged.groupBy('HashedPKColumn').count().where('count > 1').limit(1).collect()
+if dup_count:
+    raise ValueError(f'Source file contains duplicated rows for PK: {", ".join(key_columns)}')
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Add Hash
+
+# CELL ********************
+
+non_key_columns = [column for column in dfDataChanged.columns if column not in key_columns]
+
+#add a hashed cloumn to detect changes
+dfDataChanged = dfDataChanged.withColumn("HashedNonKeyColumns", md5(concat_ws("||", *non_key_columns).cast(StringType())))
+
+#Add RecordLoadDate to see when the record arrived
+dfDataChanged = dfDataChanged.withColumn('RecordLoadDate', current_timestamp())
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Read Original if exists
+
+# CELL ********************
+
+#Check if Target exist, if exists read the original data if not create table and exit
+if DeltaTable.isDeltaTable(spark, target_data_path):
+    # Read original/current data
+    dfDataOriginal = (spark
+                        .read.format("delta")
+                        .load(target_data_path)
+                        )
+
+else:
+    # Use first load when no data exists yet and then exit 
+    dfDataChanged.write.format("delta").mode("overwrite").save(target_data_path)
+    TotalRuntime = str((datetime.now() - start_audit_time)) 
+    end_audit_time =  str(datetime.now())
+    start_audit_time =str(start_audit_time)
+    # Your data
+    result_data = {
+        "Action" : "End", "CopyOutput":{
+            "Total Runtime": TotalRuntime,
+            "TargetSchema": TargetSchema,
+            "TargetName" : TargetName,
+            "SourceFilePath" : SourceFilePath,
+            "SourceFileName" : SourceFileName,
+            "LandingzoneEntityId" : LandingzoneEntityId,
+            "EntityId" : BronzeLayerEntityId,
+            "StartTime" : start_audit_time,
+            "EndTime" : end_audit_time
+
+        }
+        }
+
+    execute_with_outputs(UpsertPipelineLandingzoneEntity, driver, connstring, database)
+    execute_with_outputs(InsertPipelineBronzeLayerEntity, driver, connstring, database)
+    notebookutils.notebook.exit(result_data)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Merge table
+
+# CELL ********************
+
+#merge table
+try:
+    deltaTable = DeltaTable.forPath(spark, f'{target_data_path}')
+    if IsIncremental in [False, 'false', 'False']:
+        print(' - Incremental Loading is not enabled, deletes are allowed')
+        merge = deltaTable.alias('original') \
+            .merge(dfDataChanged.alias('updates'), 'original.HashedPKColumn == updates.HashedPKColumn') \
+            .whenNotMatchedInsertAll() \
+            .whenMatchedUpdateAll('original.HashedNonKeyColumns != updates.HashedNonKeyColumns') \
+            .whenNotMatchedBySourceDelete() \
+            .execute()
+    else:
+        print(' - Incremental Loading is enabled, deletes are not allowed')
+        merge = deltaTable.alias('original') \
+            .merge(dfDataChanged.alias('updates'), 'original.HashedPKColumn == updates.HashedPKColumn') \
+            .whenNotMatchedInsertAll() \
+            .whenMatchedUpdateAll('original.HashedNonKeyColumns != updates.HashedNonKeyColumns') \
+            .execute()
+except Exception as e:
+    # Ensure audit log is written even on failure
+    error_data = {"Action": "Error", "ErrorMessage": str(e)[:500]}
+    try:
+        execute_with_outputs(EndNotebookActivity, driver, connstring, database, LogData=json.dumps(error_data))
+    except Exception as audit_log_error:
+        print(f"Audit logging failed: {audit_log_error}")  # best-effort audit logging
+
+
+    raise
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Define Results
+
+# CELL ********************
+
+TotalRuntime = str((datetime.now() - start_audit_time)) 
+end_audit_time =  str(datetime.now())
+start_audit_time =str(start_audit_time)
+# Your data
+result_data = {
+    "Action" : "End", "CopyOutput":{
+        "Total Runtime": TotalRuntime,
+        "TargetSchema": TargetSchema,
+        "TargetName" : TargetName,
+        "SourceFilePath" : SourceFilePath,
+        "SourceFileName" : SourceFileName,
+        "LandingzoneEntityId" : LandingzoneEntityId,
+        "EntityId" : BronzeLayerEntityId,
+        "StartTime" : start_audit_time,
+        "EndTime" : end_audit_time
+
+    }
+    }
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Logging and update queue
+
+# CELL ********************
+
+execute_with_outputs(UpsertPipelineLandingzoneEntity, driver, connstring, database)
+execute_with_outputs(InsertPipelineBronzeLayerEntity, driver, connstring, database)
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Notebook exit
+
+# CELL ********************
+
+notebookutils.notebook.exit(result_data)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
