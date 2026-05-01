@@ -1,0 +1,68 @@
+# =============================================================================
+# Fabric CLI - List and create workspaces
+# Docs: https://microsoft.github.io/fabric-cli/
+# Install:  pip install ms-fabric-cli
+# =============================================================================
+
+# ----- One-time login -----
+fab auth login
+
+# ----- Enter the interactive Fabric CLI shell (if not already entered) -----
+fab
+
+
+# =============================================================================
+# LIST WORKSPACES
+# =============================================================================
+
+# 1. List all workspaces visible to the signed-in identity
+ls
+
+
+# =============================================================================
+# CREATE WORKSPACES
+# =============================================================================
+
+# 2. Create workspaces (assign capacity by name)
+mkdir "WS - Sales.Workspace"     -P capacityName=<your-capacity-name>
+mkdir "WS - Marketing.Workspace" -P capacityName=<your-capacity-name>
+mkdir "WS - Finance.Workspace"   -P capacityName=<your-capacity-name>
+
+
+# 3. Assign a security group as Workspace Member (skip if no group needed)
+acl set "WS - Sales.Workspace"     -I <your-group-id> -R member --force
+acl set "WS - Marketing.Workspace" -I <your-group-id> -R member --force
+acl set "WS - Finance.Workspace"   -I <your-group-id> -R member --force
+
+
+# 4. Create an "Internet Sales" workspace, import a notebook into Sales, then copy it across
+mkdir "WS - Internet Sales.Workspace" -P capacityName=<your-capacity-name>
+
+# Import the notebook into the Sales workspace
+import "/WS - Sales.Workspace/Rebrickable - Ingest.Notebook" -i "Demos/Resources/Rebrickable - Ingest.Notebook/Rebrickable - Ingest.ipynb" --format .ipynb --force
+
+# Copy the notebook from Sales to Internet Sales
+cp "/WS - Sales.Workspace/Rebrickable - Ingest.Notebook" "/WS - Internet Sales.Workspace/Rebrickable - Ingest.Notebook"
+
+
+# 5. Get the Internet Sales workspace ID and list its items via the REST API
+#    Docs: https://learn.microsoft.com/en-us/rest/api/fabric/core/items/list-items
+
+# Get the workspace ID
+get "WS - Internet Sales.Workspace" -q id
+
+# Call the "Items - List Items" REST API for that workspace
+# (replace <workspace-id> with the value returned above)
+api "/workspaces/<workspace-id>/items"
+
+
+# 6. Export the notebook from the Internet Sales workspace to a local folder
+export "/WS - Internet Sales.Workspace/Rebrickable - Ingest.Notebook" -o "Demos/Resources/Exports" --format .ipynb --force
+
+
+# 7. Mass-delete workspaces using interactive selection at the root
+rm .
+
+
+# ----- Exit the shell -----
+exit

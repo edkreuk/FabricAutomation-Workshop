@@ -89,7 +89,7 @@ if groupId is not None:
                 "id": groupId,
                 "type": "Group"
             },
-            "role": "Member"
+            "role": "Admin"
         }
     )
 

@@ -1,0 +1,158 @@
+{
+	"info": {
+		"name": "Microsoft Fabric REST API",
+		"description": "Sample collection for the Microsoft Fabric workshop. Demonstrates listing workspaces, creating a workspace, importing an item, assigning a role (ACL) on a workspace, and retrieving an item's definition.\n\n## Setup\n1. Get a Fabric access token. Easiest options:\n   - Azure CLI: `az account get-access-token --resource https://api.fabric.microsoft.com --query accessToken -o tsv`\n   - PowerShell (Az): `(Get-AzAccessToken -ResourceUrl https://api.fabric.microsoft.com).Token`\n2. Open the collection's **Variables** tab and paste the token into `accessToken`. Also fill in `capacityId`, `principalId`, etc.\n3. Run the requests in order — IDs returned by **Create Workspace** and **Import Item** are stored back into the collection variables `workspaceId` and `itemId` automatically via test scripts.\n\nTokens are short-lived (~1 hour). When requests start returning 401, grab a fresh token and update the variable.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{ "key": "token", "value": "{{accessToken}}", "type": "string" }
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	],
+	"variable": [
+		{ "key": "baseUrl",       "value": "https://api.fabric.microsoft.com/v1", "type": "string" },
+		{ "key": "accessToken",   "value": "<paste-bearer-token-here>", "type": "string", "description": "Bearer token for the Fabric API. Get one with `az account get-access-token --resource https://api.fabric.microsoft.com --query accessToken -o tsv`." },
+		{ "key": "capacityId",    "value": "<your-capacity-id>", "type": "string" },
+		{ "key": "workspaceId",   "value": "", "type": "string", "description": "Populated automatically after running 'Create Workspace'." },
+		{ "key": "itemId",        "value": "", "type": "string", "description": "Populated automatically after running 'Import Item'." },
+		{ "key": "principalId",   "value": "<security-group-or-user-object-id>", "type": "string" },
+		{ "key": "principalType", "value": "Group", "type": "string", "description": "Group | User | ServicePrincipal" },
+		{ "key": "role",          "value": "Member", "type": "string", "description": "Admin | Member | Contributor | Viewer" }
+	],
+	"item": [
+		{
+			"name": "List Workspaces",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/workspaces",
+					"host": ["{{baseUrl}}"],
+					"path": ["workspaces"]
+				},
+				"description": "Returns all Fabric workspaces accessible to the authenticated principal."
+			},
+			"response": []
+		},
+		{
+			"name": "Create Workspace",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"if (pm.response.code === 201 || pm.response.code === 200) {",
+							"    const json = pm.response.json();",
+							"    if (json.id) {",
+							"        pm.collectionVariables.set('workspaceId', json.id);",
+							"        console.log('Stored workspaceId =', json.id);",
+							"    }",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"displayName\": \"WS - Workshop Demo\",\n    \"description\": \"Workspace created from Postman demo collection\",\n    \"capacityId\": \"{{capacityId}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/workspaces",
+					"host": ["{{baseUrl}}"],
+					"path": ["workspaces"]
+				},
+				"description": "Creates a new workspace and assigns it to the configured Fabric capacity. The new workspace ID is stored in the `workspaceId` collection variable by the test script."
+			},
+			"response": []
+		},
+		{
+			"name": "Set Workspace Role Assignment (ACL)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"principal\": {\n        \"id\": \"{{principalId}}\",\n        \"type\": \"{{principalType}}\"\n    },\n    \"role\": \"{{role}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/workspaces/{{workspaceId}}/roleAssignments",
+					"host": ["{{baseUrl}}"],
+					"path": ["workspaces", "{{workspaceId}}", "roleAssignments"]
+				},
+				"description": "Grants the specified principal (user, group, or service principal) the chosen role on the workspace. Roles: Admin | Member | Contributor | Viewer."
+			},
+			"response": []
+		},
+		{
+			"name": "Import Item (Create Item with Definition)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"if (pm.response.code === 201 || pm.response.code === 200) {",
+							"    const json = pm.response.json();",
+							"    if (json.id) {",
+							"        pm.collectionVariables.set('itemId', json.id);",
+							"        console.log('Stored itemId =', json.id);",
+							"    }",
+							"} else if (pm.response.code === 202) {",
+							"    console.log('Long-running operation accepted. Poll the Location header for completion before reading itemId.');",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"displayName\": \"Demo Notebook\",\n    \"description\": \"Notebook imported via Postman\",\n    \"type\": \"Notebook\",\n    \"definition\": {\n        \"format\": \"ipynb\",\n        \"parts\": [\n            {\n                \"path\": \"notebook-content.ipynb\",\n                \"payload\": \"eyJjZWxscyI6W3siY2VsbF90eXBlIjoiY29kZSIsInNvdXJjZSI6WyJwcmludChcIkhlbGxvIEZhYnJpY1wiKSJdLCJtZXRhZGF0YSI6e30sImV4ZWN1dGlvbl9jb3VudCI6bnVsbCwib3V0cHV0cyI6W119XSwibWV0YWRhdGEiOnsibGFuZ3VhZ2VfaW5mbyI6eyJuYW1lIjoicHl0aG9uIn19LCJuYmZvcm1hdCI6NCwibmJmb3JtYXRfbWlub3IiOjV9\",\n                \"payloadType\": \"InlineBase64\"\n            }\n        ]\n    }\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/workspaces/{{workspaceId}}/items",
+					"host": ["{{baseUrl}}"],
+					"path": ["workspaces", "{{workspaceId}}", "items"]
+				},
+				"description": "Creates an item in the workspace by importing its definition inline. The example imports a minimal Notebook (`print(\"Hello Fabric\")`). Replace `type`, `format`, `path`, and the base64 `payload` to import other item types (e.g. SemanticModel, Report, DataPipeline). Long-running creates return 202 with a `Location` header to poll."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Item Definition",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/workspaces/{{workspaceId}}/items/{{itemId}}/getDefinition",
+					"host": ["{{baseUrl}}"],
+					"path": ["workspaces", "{{workspaceId}}", "items", "{{itemId}}", "getDefinition"]
+				},
+				"description": "Returns the full definition (parts + base64 payloads) of the specified item. May return 202 with a `Location` header for long-running operations — poll until the operation completes, then GET the result URL."
+			},
+			"response": []
+		}
+	]
+}
