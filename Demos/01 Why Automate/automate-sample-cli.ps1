@@ -4,7 +4,7 @@
 $CapacityName   = "<your-capacity-name>"
 $WorkspaceName  = "Fabric CLI - PowerShell"
 $PrincipalId    = "<your-principal-id>"
-$Role           = "member"
+$Role           = "admin"
 $NotebookName   = "Rebrickable - Ingest"
 $NotebookSource = "Demos/Resources/Rebrickable - Ingest.Notebook"
 # ============================================================

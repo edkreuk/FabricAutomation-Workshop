@@ -6,7 +6,7 @@ import subprocess
 CAPACITY_NAME   = "<your-capacity-name>"
 WORKSPACE_NAME  = "Fabric CLI - Python"
 PRINCIPAL_ID    = "<your-principal-id>"
-ROLE            = "member"
+ROLE            = "admin"
 NOTEBOOK_NAME   = "Rebrickable - Ingest"
 NOTEBOOK_SOURCE = "Demos/Resources/Rebrickable - Ingest.Notebook"
 # ============================================================
