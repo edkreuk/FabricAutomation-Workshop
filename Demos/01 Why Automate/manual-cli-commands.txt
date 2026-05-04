@@ -1,0 +1,36 @@
+# =============================================================================
+# Fabric CLI - Manual setup of medalion architecture 
+# Docs: https://microsoft.github.io/fabric-cli/
+# Install:  pip install ms-fabric-cli
+# =============================================================================
+
+# ----- One-time login -----
+fab auth login
+
+# ----- Enter the interactive Fabric CLI shell (if not already entered) -----
+fab
+
+# 1. Create the workspace (assign capacity by name)
+mkdir "Fabric CLI - Manual.Workspace" -P capacityName=<your-capacity-name>
+
+
+# 2. Assign a user/group as Workspace Member
+acl set "Fabric CLI - Manual.Workspace" -I <your-principal-id> -R member --force
+
+
+# 3. Navigate into the new workspace
+cd "Fabric CLI - Manual.Workspace"
+
+
+# 4. Create the three lakehouses (landing, base, curated)
+mkdir Landing.Lakehouse
+mkdir Base.lakehouses
+mkdir Curated.Lakehouse
+
+
+# 5. Import the Rebrickable notebook from a local .ipynb file
+import "Rebrickable - Ingest.Notebook" -i "Demos/Resources/Rebrickable - Ingest.Notebook" --format .ipynb --force
+
+
+# ----- Exit the shell -----
+exit
