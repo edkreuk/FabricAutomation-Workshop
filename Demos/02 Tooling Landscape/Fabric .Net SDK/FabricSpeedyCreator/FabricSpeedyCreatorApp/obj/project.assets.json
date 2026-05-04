@@ -1747,24 +1747,32 @@
     ]
   },
   "packageFolders": {
-    "/Users/peergronnerup/.nuget/packages/": {}
+    "C:\\Users\\PeerGrønnerup\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/peergronnerup/repos/FabricDemoConsole/FabricSpeedyCreatorApp/FabricSpeedyCreatorApp.csproj",
+      "projectUniqueName": "C:\\Repos\\PeerInsights\\FabricAutomation-Workshop\\Demos\\02 Tooling Landscape\\Fabric .Net SDK\\FabricSpeedyCreator\\FabricSpeedyCreatorApp\\FabricSpeedyCreatorApp.csproj",
       "projectName": "FabricSpeedyCreatorApp",
-      "projectPath": "/Users/peergronnerup/repos/FabricDemoConsole/FabricSpeedyCreatorApp/FabricSpeedyCreatorApp.csproj",
-      "packagesPath": "/Users/peergronnerup/.nuget/packages/",
-      "outputPath": "/Users/peergronnerup/repos/FabricDemoConsole/FabricSpeedyCreatorApp/obj/",
+      "projectPath": "C:\\Repos\\PeerInsights\\FabricAutomation-Workshop\\Demos\\02 Tooling Landscape\\Fabric .Net SDK\\FabricSpeedyCreator\\FabricSpeedyCreatorApp\\FabricSpeedyCreatorApp.csproj",
+      "packagesPath": "C:\\Users\\PeerGrønnerup\\.nuget\\packages\\",
+      "outputPath": "C:\\Repos\\PeerInsights\\FabricAutomation-Workshop\\Demos\\02 Tooling Landscape\\Fabric .Net SDK\\FabricSpeedyCreator\\FabricSpeedyCreatorApp\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "/Users/peergronnerup/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\PeerGrønnerup\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -1783,7 +1791,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.300"
+      "SdkAnalysisLevel": "10.0.200"
     },
     "frameworks": {
       "net9.0": {
@@ -1814,7 +1822,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.306/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

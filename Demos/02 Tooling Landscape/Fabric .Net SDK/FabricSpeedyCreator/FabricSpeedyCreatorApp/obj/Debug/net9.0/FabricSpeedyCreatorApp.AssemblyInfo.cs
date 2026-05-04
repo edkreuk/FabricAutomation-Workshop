@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FabricSpeedyCreatorApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+43a4805ac5a40c25716765ef7d04cb373cd56d7a")]
 [assembly: System.Reflection.AssemblyProductAttribute("FabricSpeedyCreatorApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FabricSpeedyCreatorApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
