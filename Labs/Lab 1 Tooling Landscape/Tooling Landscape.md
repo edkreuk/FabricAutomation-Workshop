@@ -1,4 +1,4 @@
-# 🧪 Lab 1 – Tooling Landscape Hands-on
+# 🧪 Lab 1 – Tooling Landscape
 
 ## 🎯 Goal
 
