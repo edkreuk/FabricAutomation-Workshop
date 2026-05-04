@@ -24,6 +24,11 @@
       "note": "",
       "type": "String",
       "value": "68b40b91-f9de-4b61-8e64-cfc5072a0511"
+    },    {
+      "name": "fmd_fabric_db_connection",
+      "note": "",
+      "type": "Guid",
+      "value": "372237f9-709a-48f8-8fb2-ce06940c990e"
     },
     {
       "name": "LH_Data_Landingzone",
