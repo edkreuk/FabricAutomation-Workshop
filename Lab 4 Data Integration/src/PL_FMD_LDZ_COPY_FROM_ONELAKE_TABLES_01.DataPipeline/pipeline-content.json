@@ -1,0 +1,319 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "name": "FE_ENTITY",
+        "description": "",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "LK_GET_ENTITIES",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "items": {
+            "value": "@activity('LK_GET_ENTITIES').output.value",
+            "type": "Expression"
+          },
+          "activities": [
+            {
+              "name": "CP_SOURCE_datalandingzone",
+              "description": "",
+              "type": "Copy",
+              "dependsOn": [],
+              "policy": {
+                "timeout": "0.01:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "typeProperties": {
+                "source": {
+                  "type": "LakehouseTableSource",
+                  "datasetSettings": {
+                    "annotations": [],
+                    "linkedService": {
+                      "name": "45a5f511_b5ba_4b7c_a0c6_5ced70a3d1eb",
+                      "properties": {
+                        "annotations": [],
+                        "type": "Lakehouse",
+                        "typeProperties": {
+                          "workspaceId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_data_workspace",
+                          "artifactId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_LH_Data_Landingzone",
+                          "rootFolder": "Tables"
+                        }
+                      }
+                    },
+                    "type": "LakehouseTable",
+                    "schema": [],
+                    "typeProperties": {
+                      "schema": {
+                        "value": "@item().SourceSchema",
+                        "type": "Expression"
+                      },
+                      "table": {
+                        "value": "@item().SourceName",
+                        "type": "Expression"
+                      }
+                    }
+                  }
+                },
+                "sink": {
+                  "type": "ParquetSink",
+                  "storeSettings": {
+                    "type": "AzureBlobStorageWriteSettings",
+                    "copyBehavior": "PreserveHierarchy"
+                  },
+                  "formatSettings": {
+                    "type": "ParquetWriteSettings",
+                    "enableVertiParquet": false
+                  },
+                  "datasetSettings": {
+                    "annotations": [],
+                    "linkedService": {
+                      "name": "03d214bb_0296_4eed_b1a1_8fcc14e15837",
+                      "properties": {
+                        "annotations": [],
+                        "type": "Lakehouse",
+                        "typeProperties": {
+                          "workspaceId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_data_workspace",
+                          "artifactId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_LH_Data_Landingzone",
+                          "rootFolder": "Files"
+                        }
+                      }
+                    },
+                    "type": "Parquet",
+                    "typeProperties": {
+                      "location": {
+                        "type": "LakehouseLocation",
+                        "fileName": {
+                          "value": "@item().TargetFileName",
+                          "type": "Expression"
+                        },
+                        "folderPath": {
+                          "value": "@item().TargetFilePath",
+                          "type": "Expression"
+                        }
+                      },
+                      "compressionCodec": "snappy"
+                    },
+                    "schema": []
+                  }
+                },
+                "enableStaging": false,
+                "validateDataConsistency": true,
+                "translator": {
+                  "type": "TabularTranslator",
+                  "typeConversion": true,
+                  "typeConversionSettings": {
+                    "allowDataTruncation": true,
+                    "treatBooleanAsNumber": false
+                  }
+                }
+              }
+            },
+            {
+              "name": "SP_UPDATE_PROCESS",
+              "type": "SqlServerStoredProcedure",
+              "dependsOn": [
+                {
+                  "activity": "CP_SOURCE_datalandingzone",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.01:00:00",
+                "retry": 2,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "typeProperties": {
+                "storedProcedureName": "[execution].[sp_UpsertPipelineLandingzoneEntity]",
+                "storedProcedureParameters": {
+                  "Filename": {
+                    "value": {
+                      "value": "@item().TargetFileName",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  },
+                  "FilePath": {
+                    "value": {
+                      "value": "@item().TargetFilePath",
+                      "type": "Expression"
+                    },
+                    "type": "String"
+                  },
+                  "IsProcessed": {
+                    "value": "False",
+                    "type": "Boolean"
+                  },
+                  "LandingzoneEntityId": {
+                    "value": {
+                      "value": "@item().EntityId",
+                      "type": "Expression"
+                    },
+                    "type": "Int64"
+                  }
+                }
+              },
+              "connectionSettings": {
+                "name": "SQL_FMD DEMO_FRAMEWORK",
+                "properties": {
+                  "annotations": [],
+                  "type": "FabricSqlDatabase",
+                  "typeProperties": {
+                    "workspaceId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_config_workspace_guid",
+                    "artifactId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_config_database_guid"
+                  },
+                  "externalReferences": {
+                    "connection": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_fabric_db_connection"
+                  }
+                }
+              }
+            },
+            {
+              "name": "SP_UPDATE_LASTLOADVALIE",
+              "type": "SqlServerStoredProcedure",
+              "dependsOn": [
+                {
+                  "activity": "CP_SOURCE_datalandingzone",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.01:00:00",
+                "retry": 2,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "typeProperties": {
+                "storedProcedureName": "[execution].[sp_UpsertLandingZoneEntityLastLoadValue]",
+                "storedProcedureParameters": {
+                  "LandingzoneEntityId": {
+                    "value": {
+                      "value": "@item().EntityId",
+                      "type": "Expression"
+                    },
+                    "type": "Int64"
+                  },
+                  "LastLoadValue": {
+                    "value": {
+                      "value": "@utcNow()",
+                      "type": "Expression"
+                    },
+                    "type": "Datetime"
+                  }
+                }
+              },
+              "connectionSettings": {
+                "name": "SQL_FMD DEMO_FRAMEWORK",
+                "properties": {
+                  "annotations": [],
+                  "type": "FabricSqlDatabase",
+                  "typeProperties": {
+                    "workspaceId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_config_workspace_guid",
+                    "artifactId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_config_database_guid"
+                  },
+                  "externalReferences": {
+                    "connection": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_fabric_db_connection"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "LK_GET_ENTITIES",
+        "description": "Will run all the Entities with the Type ONELAKE_TABLES_01 assigned in the integration.DataSource",
+        "type": "Lookup",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "FabricSqlDatabaseSource",
+            "sqlReaderQuery": {
+              "value": "SELECT *  FROM [execution].[vw_LoadSourceToLandingzone]  where DataSourceType='ONELAKE_TABLES_01'\n",
+              "type": "Expression"
+            },
+            "queryTimeout": "02:00:00",
+            "partitionOption": "None"
+          },
+          "firstRowOnly": false,
+          "datasetSettings": {
+            "annotations": [],
+            "connectionSettings": {
+              "name": "SQL_FMD DEMO_FRAMEWORK",
+              "properties": {
+                "annotations": [],
+                "type": "FabricSqlDatabase",
+                "typeProperties": {
+                  "workspaceId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_config_workspace_guid",
+                  "artifactId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_config_database_guid"
+                },
+                "externalReferences": {
+                  "connection": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_fabric_db_connection"
+                }
+              }
+            },
+            "type": "FabricSqlDatabaseTable",
+            "schema": [],
+            "typeProperties": {
+              "schema": "execution",
+              "table": "vw_LoadToBronzeLayer"
+            }
+          }
+        }
+      }
+    ],
+    "libraryVariables": {
+      "VAR_CONFIG_FMD_fmd_config_database_guid": {
+        "type": "String",
+        "variableName": "fmd_config_database_guid",
+        "libraryName": "VAR_CONFIG_FMD"
+      },
+      "VAR_CONFIG_FMD_fmd_config_workspace_guid": {
+        "type": "String",
+        "variableName": "fmd_config_workspace_guid",
+        "libraryName": "VAR_CONFIG_FMD"
+      },
+      "VAR_CONFIG_FMD_fmd_fabric_db_connection": {
+        "type": "String",
+        "variableName": "fmd_fabric_db_connection",
+        "libraryName": "VAR_CONFIG_FMD"
+      },
+      "VAR_CONFIG_FMD_LH_Data_Landingzone": {
+        "type": "String",
+        "variableName": "LH_Data_Landingzone",
+        "libraryName": "VAR_CONFIG_FMD"
+      },
+      "VAR_CONFIG_FMD_LH_Bronze_Layer": {
+        "type": "String",
+        "variableName": "LH_Bronze_Layer",
+        "libraryName": "VAR_CONFIG_FMD"
+      },
+      "VAR_CONFIG_FMD_data_workspace": {
+        "type": "String",
+        "variableName": "data_workspace",
+        "libraryName": "VAR_CONFIG_FMD"
+      }
+    }
+  }
+}
