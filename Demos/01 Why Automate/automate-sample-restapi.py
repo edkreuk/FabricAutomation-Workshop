@@ -127,7 +127,7 @@ lakehouse = invoke_fabric_api_request(
 print("Curated lakehouse created with ID: " + lakehouse.json().get("id"))
 
 ### Read notebook file and encode as base64
-with open("Demos/Resources/Rebrickable - Ingest.Notebook/Rebrickable - Ingest.ipynb", "rb") as f:
+with open("Demos/Resources/Rebrickable - Ingest.Notebook/notebook-content.ipynb", "rb") as f:
     notebook_payload = base64.b64encode(f.read()).decode()
 
 ### Import notebook into workspace
