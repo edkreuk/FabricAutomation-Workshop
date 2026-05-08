@@ -35,11 +35,11 @@ Before starting, make sure you have:
 
 | #  | Lab | Focus |
 |----|-----|-------|
-| 1  | [Environment & Architecture Setup](Lab%201.md) | Workspace, Medallion layers, Lakehouses, Notebook |
-| 2  | [Data Ingestion & Scheduling](Lab%202.md) | Upload data, load with Notebook, schedule refresh |
-| 3  | [Shortcuts & Dimensional Modeling](Lab%203.md) | OneLake shortcuts, dimension and fact tables |
-| 4  | [Semantic Model & Reporting](Lab%204.md) | Semantic Model, Power BI report |
-| 5  | [Variable Library & Reusability](Lab%205.md) | Configuration-driven development |
+| 1  | [Tooling Landscape](Labs/Lab%201%20Tooling%20Landscape/Tooling%20Landscape.md) | REST APIs, Fabric CLI, SDKs, and MCP servers |
+| 2  | [Data Platform Engineering Part 1](Labs/Lab%202%20Data%20Platform%20engineering%20Part%201/Lab%20Data%20Platform%20engineering%20Part%201.md) | Workspaces, Medallion lakehouses, managed identities |
+| 3  | [Data Platform Engineering Part 2](Labs/Lab%203%20Data%20Platform%20engineering%20Part%202/Lab%20Data%20Platform%20engineering%20Part%202.md) | Configuration workspace, Fabric Database, metadata management |
+| 4  | [Data Integration](Labs/Lab%204%20Data%20Integration/Lab%20Data%20Integration.md) | Metadata-driven orchestration, Medallion data loading |
+| 5  | [Data Preparation (Gold Layer)](Labs/Lab%205%20Data%20Preperation/Lab%20Data%20Preperation.md) | Gold layer, OneLake shortcuts, Materialized Lake Views |
 
 ---
 
