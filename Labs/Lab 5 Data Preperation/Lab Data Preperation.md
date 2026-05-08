@@ -1,6 +1,6 @@
-🧪 Exercise - Data Preparation (Gold Layer)
+# 🧪 Lab 5 - Data Preparation (Gold Layer)
 
-## Objective
+## 🎯 Goal
 
 Set up the Gold layer environment in Microsoft Fabric by creating the required workspaces and Gold lakehouse, creating OneLake shortcuts to curated tables, generating a DimDate table, and building Materialized Lake Views for analytics consumption.
 
@@ -30,7 +30,7 @@ Before starting:
 ### Task 1: Deploy Gold Base Assets
 
 1. Open NB_SETUP_WORKSHOP_GOLD.ipynb.
-2. Review and update workspace parameters:
+2. Review and update workspace parameters, use a different name for the Gold code workspace such as `WS <your initials> GOLD` to distinguish it from the previous code workspace.
 	- `workspace_name_code`
 	- `workspace_name_data`
 	- `workspace_name_semantic`
@@ -79,19 +79,6 @@ Expected result:
 3. Run all SQL cells to create or replace Materialized Lake Views in schema `gold`.
 4. Refresh your lakehouse view graph and confirm views are visible.
 
-Views created include:
-- `gold.Colors`
-- `gold.elements`
-- `gold.inventories`
-- `gold.inventory_minifigs`
-- `gold.inventory_parts`
-- `gold.inventory_sets`
-- `gold.minifigs`
-- `gold.part_categories`
-- `gold.part_relationships`
-- `gold.parts`
-- `gold.sets`
-- `gold.themes`
 
 Expected result:
 - Gold materialized views are created and refreshed for analytics-ready consumption.
@@ -120,3 +107,4 @@ At the end of this lab, you have:
 - Shortcut-based access to curated tables in the Gold lakehouse
 - A set of Gold Materialized Lake Views for downstream BI and semantic modeling
 
+## Congrats You have completed Lab 5 and the last lab of this workshop! 🎉

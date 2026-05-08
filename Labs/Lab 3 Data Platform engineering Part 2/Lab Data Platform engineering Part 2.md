@@ -1,6 +1,6 @@
-🧪 Exercise - Data Platform Engineering Part 2
+# 🧪 Lab 3 - Data Platform Engineering Part 2
 
-## Objective
+## 🎯 Goal
 
 Create a dedicated Microsoft Fabric configuration workspace and provision a Fabric Database that will be used to store configuration and control metadata for the rest of the workshop.
 
@@ -24,46 +24,15 @@ Before you begin, make sure:
 - You can open and run the notebook `NB_SETUP_WORKSHOP_ENGINEERING_PART_2.ipynb`
 - You have permission to create workspaces and Fabric items
 
-## Naming Conventions
-
-Use the naming standard from the notebook throughout the exercise:
-- `PL` = Pipeline
-- `NB` = Notebook
-- `VAR` = Variable Library
-- `SQL` = Fabric Database
-- `LH` = Lakehouse
-- `WH` = Warehouse
-- `WS` = Workspace
-
-For this lab, use a workspace and database name that clearly identifies you or your team while staying consistent with the workshop naming pattern.
-
 ## Lab Tasks
 
 ### Task 1: Open the Setup Notebook
 
 1. Open `NB_SETUP_WORKSHOP_ENGINEERING_PART_2.ipynb`.
 2. Review the notebook sections before running any cells.
-3. Confirm that the notebook covers these stages:
-	- Capacity configuration
-	- CLI login
-	- Workspace creation
-	- Workspace identity creation
-	- Workspace description
-	- Fabric Database creation
-	- Database description
 
-### Task 2: Verify Fabric CLI Availability
 
-The notebook includes a Fabric CLI installation cell. In most workshop environments with Python 3.12, the CLI is already available.
-
-1. Review the install cell.
-2. If the CLI is not present in your environment, uncomment and run the installation command.
-3. Otherwise, leave it as-is and continue.
-
-Expected result:
-- The notebook environment can execute `fab` commands successfully.
-
-### Task 3: Configure the Capacity
+### Task 2: Configure the Capacity
 
 1. Locate the `capacity_name` variable in the notebook.
 2. Replace the sample value with the Fabric capacity you will use for this workshop.
@@ -72,7 +41,7 @@ Expected result:
 Expected result:
 - The notebook is configured to assign the new workspace to the correct capacity.
 
-### Task 4: Authenticate the Notebook Session
+### Task 3: Authenticate the Notebook Session
 
 1. Run the CLI login section.
 2. Confirm the notebook retrieves a Power BI token and stores it in the required environment variables.
@@ -81,7 +50,7 @@ Expected result:
 Expected result:
 - The Fabric CLI can create and manage items on behalf of your signed-in user.
 
-### Task 5: Create the Configuration Workspace
+### Task 4: Create the Configuration Workspace
 
 1. Set the `workspace_name_config` value.
 2. Use a clear name that follows the workshop naming convention, for example a variation of `WS <your initials> CONFIG`.
@@ -91,7 +60,7 @@ Expected result:
 Expected result:
 - A new dedicated configuration workspace exists in Fabric.
 
-### Task 6: Create a Workspace Identity
+### Task 5: Create a Workspace Identity
 
 1. Run the cell that creates the managed identity for the configuration workspace.
 2. Verify that the identity is created successfully.
@@ -103,7 +72,7 @@ Why this matters:
 Expected result:
 - The configuration workspace has a managed identity assigned.
 
-### Task 7: Add a Workspace Description
+### Task 6: Add a Workspace Description
 
 1. Review the payload used in the notebook.
 2. Update the description if needed so it clearly explains:
@@ -115,7 +84,7 @@ Expected result:
 Expected result:
 - The workspace includes a clear governance-friendly description.
 
-### Task 8: Create the Fabric Database
+### Task 7: Create the Fabric Database
 
 1. Set the `database_name` variable.
 2. Use a consistent workshop name such as `SQL_DEMO` or a similarly clear configuration database name.
@@ -125,7 +94,7 @@ Expected result:
 Expected result:
 - A Fabric Database is created inside the configuration workspace.
 
-### Task 9: Add a Database Description
+### Task 8: Add a Database Description
 
 1. Run the cell that sets the database description.
 2. Update the text if needed so it accurately reflects the purpose of the database.
@@ -164,8 +133,6 @@ If you run into issues:
 - Rerun only the failed cell after correcting the input value
 - If an item already exists, decide whether to reuse it or delete and recreate it before continuing
 
-## Next Step
 
-After completing this lab, continue to the next workshop exercise where you will start building out the data integration components that use this configuration foundation.
 
 

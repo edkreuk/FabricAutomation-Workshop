@@ -1,6 +1,6 @@
-🧪 Exercise - Data Integration
+# 🧪 Lab 4 - Data Integration
 
-## Objective
+## 🎯 Goal
 
 Deploy and run the workshop integration framework in Microsoft Fabric by loading metadata into the configuration database, ingesting Rebrickable source data into Landing, and executing the full Landing to Bronze to Silver orchestration pipeline.
 
@@ -81,7 +81,7 @@ Expected result:
 	 - `landing_lakehouse_name` to `LH_Data_Landingzone`
 	 - `landing_workspace_id` to your data workspace GUID
 3. Run the notebook end-to-end.
-4. Confirm Delta tables are created for all Rebrickable datasets in the Landing lakehouse.
+4. Confirm Delta tables are created for all Rebrickable datasets in the Data Landing lakehouse.
 
 Expected result:
 - Landing contains tables such as `colors`, `themes`, `parts`, `sets`, `inventory_parts`, and related entities.
