@@ -20,7 +20,6 @@ GO
 DECLARE @RC int;
 
 DECLARE @DataSourceId int = 1; -- TODO: replace
-
 DECLARE @SourceSchema nvarchar(100) = N'dbo';
 DECLARE @SourceName nvarchar(200);
 DECLARE @TargetSchema nvarchar(100)

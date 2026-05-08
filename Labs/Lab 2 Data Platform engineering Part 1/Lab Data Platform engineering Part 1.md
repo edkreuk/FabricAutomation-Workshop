@@ -1,6 +1,6 @@
-🧪 Exercise - Data Platform Engineering Part 1
+# 🧪 Lab 2 - Data Platform Engineering Part 1
 
-## Objective
+## 🎯 Goal
 
 Build the initial Microsoft Fabric platform foundation for the workshop by creating separate code and data workspaces, enabling managed identities, and provisioning the first Medallion Architecture lakehouses.
 
@@ -60,16 +60,7 @@ These represent the first three layers of the Medallion Architecture:
 
 1. Open `NB_SETUP_WORKSHOP_ENGINEERING_PART_1.ipynb`.
 2. Review the notebook sections before running any code.
-3. Confirm the notebook includes sections for:
-	- Fabric CLI availability
-	- Capacity configuration
-	- CLI login
-	- Workspace creation
-	- Workspace identity creation
-	- Workspace description updates
-	- Lakehouse creation
-	- Lakehouse descriptions
-	- Notebook creation
+
 
 ### Task 2: Verify Fabric CLI Availability
 
@@ -91,16 +82,8 @@ Expected result:
 Expected result:
 - All newly created workshop items will be assigned to the intended Fabric capacity.
 
-### Task 4: Authenticate the Notebook Session
 
-1. Run the login section that retrieves the Power BI token.
-2. Confirm the token is stored in the environment variables used by the Fabric CLI.
-3. If authentication fails, verify that your Fabric session is active and that you are signed in with the correct account.
-
-Expected result:
-- The Fabric CLI can create and manage items using your user identity.
-
-### Task 5: Create the Code and Data Workspaces
+### Task 4: Create the Code and Data Workspaces
 
 1. Review the predefined values for:
 	- `workspace_name_code`
@@ -112,7 +95,7 @@ Expected result:
 - One dedicated code workspace exists.
 - One dedicated data workspace exists.
 
-### Task 6: Create a Workspace Identity for Each Workspace
+### Task 5: Create a Workspace Identity for Each Workspace
 
 1. Run the cell that creates the managed identity for the code workspace.
 2. Run the cell that creates the managed identity for the data workspace.
@@ -124,7 +107,7 @@ Why this matters:
 Expected result:
 - Both workspaces have a managed identity assigned.
 
-### Task 7: Add Descriptions to the Workspaces
+### Task 6: Add Descriptions to the Workspaces
 
 1. Review the payload used by the notebook.
 2. Confirm the description explains that the workspace content is generated through the Fabric CLI and may be overwritten when the setup notebook is rerun.
@@ -133,7 +116,7 @@ Expected result:
 Expected result:
 - Both workspaces have clear, governance-friendly descriptions.
 
-### Task 8: Create the Medallion Lakehouses
+### Task 7: Create the Medallion Lakehouses
 
 1. Review the `lakehouses` list in the notebook.
 2. Keep the provided names unchanged:
@@ -146,7 +129,7 @@ Expected result:
 Expected result:
 - All three lakehouses are created in the data workspace.
 
-### Task 9: Add Descriptions to the Lakehouses
+### Task 8: Add Descriptions to the Lakehouses
 
 1. Run the description commands for each lakehouse.
 2. Verify the descriptions clearly state the role of each layer:
@@ -158,11 +141,11 @@ Expected result:
 Expected result:
 - Each lakehouse is documented with its functional purpose.
 
-### Task 10: Create an Empty Notebook in the Code Workspace
+### Task 9: Create an Empty Notebook in the Code Workspace
 
 1. Review the `notebook_name` variable.
 2. Run the notebook creation cell in the code workspace.
-3. Confirm that the notebook description is assigned automatically in the same setup flow.
+3. Confirm that the notebook has been created in the code workspace.
 
 Expected result:
 - A starter notebook exists in the code workspace and is ready for later exercises.
