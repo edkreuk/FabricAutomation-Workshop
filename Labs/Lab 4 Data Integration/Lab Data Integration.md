@@ -86,7 +86,12 @@ Expected result:
 Expected result:
 - Landing contains tables such as `colors`, `themes`, `parts`, `sets`, `inventory_parts`, and related entities.
 
-### Task 4: Configure Variable Library Values
+### Task 4: Create Fabric Database Connection
+1. In the Fabric portal, navigate to manage connections
+2. Create a new connection of type `Fabric Database`
+3. Note down the connection id
+
+### Task 5: Configure Variable Library Values
 
 1. Open variable library `VAR_CONFIG_FMD` in the code workspace.
 2. Update variables to match your environment IDs and connection values.
