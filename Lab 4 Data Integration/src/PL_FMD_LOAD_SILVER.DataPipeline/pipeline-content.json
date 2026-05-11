@@ -1,0 +1,155 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "FabricSqlDatabaseSource",
+            "sqlReaderStoredProcedureName": "[execution].[sp_GetSilverlayerEntity]",
+            "partitionOption": "None",
+            "queryTimeout": "02:00:00"
+          },
+          "datasetSettings": {
+            "type": "FabricSqlDatabaseTable",
+            "typeProperties": {
+              "schema": "execution",
+              "table": "vw_LoadToSilverLayer"
+            },
+            "schema": [],
+            "connectionSettings": {
+              "name": "2e2ba292_9153_46e4_8594_ca19945ca658",
+              "properties": {
+                "type": "FabricSqlDatabase",
+                "typeProperties": {
+                  "artifactId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_config_database_guid",
+                  "workspaceId": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_config_workspace_guid"
+                },
+                "externalReferences": {
+                  "connection": "@pipeline().libraryVariables.VAR_CONFIG_FMD_fmd_fabric_db_connection"
+                },
+                "annotations": []
+              }
+            },
+            "annotations": []
+          },
+          "firstRowOnly": false
+        },
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "LK_GET_ENTITIES_SLV",
+        "description": "Will run all the Entities for the Silver Layer",
+        "dependsOn": []
+      },
+      {
+        "type": "IfCondition",
+        "typeProperties": {
+          "expression": {
+            "value": "@equals(length(json(activity('LK_GET_ENTITIES_SLV').output.value[0].NotebookParams)), 0)\n",
+            "type": "Expression"
+          },
+          "ifTrueActivities": [],
+          "ifFalseActivities": [
+            {
+              "type": "TridentNotebook",
+              "typeProperties": {
+                "notebookId": "5d142f2d-00c2-8c02-4a4f-36e0cf32a3fb",
+                "workspaceId": "00000000-0000-0000-0000-000000000000",
+                "parameters": {
+                  "Path": {
+                    "value": {
+                      "value": "@activity('LK_GET_ENTITIES_SLV').output.value[0].notebookParams",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "TriggerGuid": {
+                    "value": {
+                      "value": "@pipeline().TriggerId",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "TriggerTime": {
+                    "value": {
+                      "value": "@pipeline().TriggerTime",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "TriggerType": {
+                    "value": {
+                      "value": "@pipeline().TriggerType",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  }
+                },
+                "sessionTag": "fmd_framework"
+              },
+              "policy": {
+                "timeout": "0.01:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureInput": false,
+                "secureOutput": false
+              },
+              "name": "NB_FMD_PROCESSING_PARALLEL_MAIN",
+              "dependsOn": []
+            },
+            {
+              "type": "Fail",
+              "typeProperties": {
+                "message": {
+                  "value": "@concat(activity('NB_FMD_PROCESSING_PARALLEL_MAIN').output.result.error.evalue,'--------------------------------', 'https://app.powerbi.com/',activity('NB_FMD_PROCESSING_PARALLEL_MAIN').output.SparkMonitoringURL, '?trident=1&tab=related','  ' )",
+                  "type": "Expression"
+                },
+                "errorCode": "Notebooks failed"
+              },
+              "name": "FA_THROW_ERROR",
+              "dependsOn": [
+                {
+                  "activity": "NB_FMD_PROCESSING_PARALLEL_MAIN",
+                  "dependencyConditions": [
+                    "Failed"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "name": "IF_RESULT_NOT_EMPTY",
+        "dependsOn": [
+          {
+            "activity": "LK_GET_ENTITIES_SLV",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      }
+    ],
+    "libraryVariables": {
+      "VAR_CONFIG_FMD_fmd_config_database_guid": {
+        "type": "String",
+        "variableName": "fmd_config_database_guid",
+        "libraryName": "VAR_CONFIG_FMD"
+      },
+      "VAR_CONFIG_FMD_fmd_config_workspace_guid": {
+        "type": "String",
+        "variableName": "fmd_config_workspace_guid",
+        "libraryName": "VAR_CONFIG_FMD"
+      },
+      "VAR_CONFIG_FMD_fmd_fabric_db_connection": {
+        "type": "String",
+        "variableName": "fmd_fabric_db_connection",
+        "libraryName": "VAR_CONFIG_FMD"
+      }
+    }
+  }
+}
