@@ -49,12 +49,6 @@
       "value": "861b9f72-fe75-4e9d-942f-f58718d45f14"
     },
     {
-      "name": "fmd_fabric_db_connection",
-      "note": "",
-      "type": "Guid",
-      "value": "372237f9-709a-48f8-8fb2-ce06940c990e"
-    },
-    {
       "name": "data_workspace",
       "note": "",
       "type": "Guid",
