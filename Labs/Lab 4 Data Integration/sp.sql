@@ -1,106 +1,147 @@
---Insert Connection
-EXEC [integration].[sp_UpsertConnection] 
-@ConnectionGuid = "00000000-0000-0000-0000-000000000000",
- @Name = "CON_FMD_ONELAKE", 
- @Type = "ONELAKE", 
- @IsActive = 1
-
--- Insert Data Source
-    EXECUTE [integration].[sp_UpsertDataSource] 
-        @ConnectionId = 1  --Needs to match the ConnectionId of the connection inserted above
-        ,@DataSourceId = 0
-        ,@Name = 'LH_DATA_LANDINGZONE'
-        ,@Namespace = 'ONELAKE'
-        ,@Type = 'ONELAKE_TABLES_01'
-        ,@Description = 'ONELAKE_TABLES'
-        ,@IsActive = 1
-
-
+SET ANSI_NULLS ON
 GO
-DECLARE @RC int;
+SET QUOTED_IDENTIFIER ON
+GO
 
-DECLARE @DataSourceId int = 1; -- TODO: replace
-DECLARE @SourceSchema nvarchar(100) = N'dbo';
-DECLARE @SourceName nvarchar(200);
-DECLARE @TargetSchema nvarchar(100)
-DECLARE @TargetName nvarchar(200)
-DECLARE @FileName nvarchar(200);
-DECLARE @FilePath nvarchar(100) = N'FMD';
-DECLARE @FileType nvarchar(20) = N'parquet';
-
-DECLARE @IsIncremental bit = 0;
-DECLARE @IsIncrementalColumn nvarchar(50) = NULL;
-
-DECLARE @PrimaryKeys nvarchar(200);
-
--- Input table list (table name + primary key)
-DECLARE @Tables TABLE
+CREATE PROCEDURE [integration].[sp_UpsertLandingzoneBronzeSilver]
 (
-    SourceName   nvarchar(200) NOT NULL,
-    PrimaryKeys  nvarchar(200) NOT NULL
-);
-
-INSERT INTO @Tables (SourceName, PrimaryKeys)
-VALUES
-    (N'elements',             N'element_id'),
-    (N'colors',               N'id'),
-    (N'inventories',          N'id'),
-    (N'inventory_minifigs',   N'inventory_id;fig_num'),
-    (N'inventory_parts',      N'inventory_id;part_num;color_id;is_spare'),
-    (N'inventory_sets',       N'inventory_id;set_num'),
-    (N'minifigs',             N'fig_num'),
-    (N'part_categories',      N'id'),
-    (N'part_relationships',   N'child_part_num;parent_part_num;rel_type'),
-    (N'themes',               N'id'),          -- as provided (possible typo)
-    (N'parts',                N'part_num'),
-    (N'sets',                 N'set_num');
-
-DECLARE cur CURSOR FAST_FORWARD FOR
-SELECT SourceName, PrimaryKeys
-FROM @Tables
-ORDER BY SourceName;
-
-OPEN cur;
-FETCH NEXT FROM cur INTO @SourceName, @PrimaryKeys;
-
-WHILE @@FETCH_STATUS = 0
+    @DataSourceId INT,
+    @SourceSchema NVARCHAR(100),
+    @SourceName NVARCHAR(200),
+    @TargetSchema NVARCHAR(100),
+    @TargetName NVARCHAR(200),
+    @FileName NVARCHAR(200),
+    @FilePath NVARCHAR(100),
+    @FileType NVARCHAR(20),
+    @IsIncremental BIT,
+    @IsIncrementalColumn NVARCHAR(50) = NULL,
+    -- Bronze parameters
+    @PrimaryKeys NVARCHAR(200)
+)
+WITH EXECUTE AS CALLER
+AS
 BEGIN
-    SET @FileName = @SourceName;
-    SET @TargetSchema = @SourceSchema;
-    SET @TargetName = @SourceName;
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Output tables
+        DECLARE @LandingzoneOutput TABLE (LandingzoneEntityId INT);
+        DECLARE @BronzeOutput      TABLE (BronzeLayerEntityId INT);
+        DECLARE @SilverOutput      TABLE (SilverLayerEntityId INT);
+
+        DECLARE @IsActiveLandingzone BIT = 1;
+        DECLARE @IsActiveBronze      BIT = 1;
+        DECLARE @IsActiveSilver      BIT = 1;
+
+        DECLARE @BronzeFileType NVARCHAR(20) = N'Delta';
+        DECLARE @SilverFileType NVARCHAR(20) = N'Delta';
+
+        ------------------------------------------------------------
+        -- 1. Upsert Landingzone
+        ------------------------------------------------------------
+        MERGE [integration].[LandingzoneEntity] AS target
+        USING (
+            SELECT
+                @SourceSchema AS SourceSchema,
+                @SourceName   AS SourceName,
+                @DataSourceId AS DataSourceId
+        ) AS source
+        ON  target.SourceSchema = source.SourceSchema
+        AND target.SourceName   = source.SourceName
+        AND target.DataSourceId = source.DataSourceId
+             WHEN MATCHED THEN
+            UPDATE SET
+                DataSourceId        = @DataSourceId,
+                IsActive            = @IsActiveLandingzone,
+                FileName            = @FileName,
+                FileType            = @FileType,
+                FilePath            = @FilePath,
+                IsIncremental       = @IsIncremental,
+                IsIncrementalColumn = @IsIncrementalColumn
+        WHEN NOT MATCHED THEN
+            INSERT (
+                DataSourceId, IsActive, SourceSchema, SourceName, 
+                FileName, FileType, FilePath, IsIncremental, IsIncrementalColumn
+            )
+            VALUES (
+                @DataSourceId, @IsActiveLandingzone, @SourceSchema, @SourceName,
+                @FileName, @FileType, @FilePath,  @IsIncremental, @IsIncrementalColumn
+            )
+        OUTPUT INSERTED.LandingzoneEntityId INTO @LandingzoneOutput;
+
+        DECLARE @FinalLandingzoneId INT = (SELECT TOP (1) LandingzoneEntityId FROM @LandingzoneOutput);
+
+        ------------------------------------------------------------
+        -- 2. Upsert Bronze Layer
+        ------------------------------------------------------------
 
 
-    EXECUTE @RC = [integration].[sp_UpsertLandingzoneBronzeSilver]
-          @DataSourceId
-        , @SourceSchema              -- @SourceSchema NVARCHAR(100)
-        , @SourceName                -- @SourceName   NVARCHAR(200)
-        , @TargetSchema 
-        , @TargetName 
-        , @FileName                  -- @FileName NVARCHAR(200)
-        , @FilePath                  -- @FilePath NVARCHAR(100)
-        , @FileType                  -- @FileType NVARCHAR(20)
-        , @IsIncremental             -- @IsIncremental BIT
-        , @IsIncrementalColumn       -- @IsIncrementalColumn NVARCHAR(50) = NULL
-        , @PrimaryKeys;              -- @PrimaryKeys NVARCHAR(200)
+        MERGE [integration].[BronzeLayerEntity] AS target
+        USING (
+            SELECT
+                @TargetSchema AS TargetSchema,
+                @TargetName   AS TargetName
+        ) AS source
+        ON  target.[Schema]    = source.TargetSchema
+        AND target.[Name]      = source.TargetName
 
+        WHEN MATCHED THEN
+            UPDATE SET
+                [IsActive]            = @IsActiveBronze,
+                [Schema]              = @TargetSchema,
+                [Name]                = @TargetName,
+                [FileType]            = @BronzeFileType,
+                [PrimaryKeys]         = @PrimaryKeys
+        WHEN NOT MATCHED THEN
+            INSERT ([LandingzoneEntityId], [IsActive], [Schema], [Name], [FileType], [PrimaryKeys])
+            VALUES (@FinalLandingzoneId, @IsActiveBronze, @TargetSchema, @TargetName, @BronzeFileType, @PrimaryKeys)
+        OUTPUT INSERTED.BronzeLayerEntityId INTO @BronzeOutput;
 
-    IF ISNULL(@RC, 0) <> 0
-    BEGIN
-        DECLARE @Msg nvarchar(4000);
-        SET @Msg = N'sp_UpsertLandingzoneBronzeSilver failed for '
-                 + ISNULL(@SourceSchema, N'?') + N'.' + ISNULL(@SourceName, N'?')
-                 + N' (RC=' + CAST(@RC AS nvarchar(20)) + N')';
+        DECLARE @FinalBronzeId INT = (SELECT TOP (1) BronzeLayerEntityId FROM @BronzeOutput);
 
-        RAISERROR (@Msg, 16, 1);
-        -- Optionally stop the loop:
-        CLOSE cur;
-        DEALLOCATE cur;
-        RETURN;
-    END
+        ------------------------------------------------------------
+        -- 3. Upsert Silver Layer
+        ------------------------------------------------------------
 
-    FETCH NEXT FROM cur INTO @SourceName, @PrimaryKeys;
-END
+        MERGE [integration].[SilverLayerEntity] AS target
+        USING (SELECT @FinalBronzeId AS BronzeLayerEntityId) AS source
+        ON target.BronzeLayerEntityId = source.BronzeLayerEntityId
+        WHEN MATCHED THEN
+            UPDATE SET
+                [BronzeLayerEntityId] = @FinalBronzeId,
+                [Schema]               = @TargetSchema,
+                [Name]                 = @TargetName,
+                [FileType]             = @SilverFileType,
+          
+                [IsActive]             = @IsActiveSilver
+        WHEN NOT MATCHED THEN
+            INSERT ([BronzeLayerEntityId], [IsActive], [Schema], [Name], [FileType])
+            VALUES (@FinalBronzeId, @IsActiveSilver, @TargetSchema, @TargetName, @SilverFileType)
+        OUTPUT INSERTED.SilverLayerEntityId INTO @SilverOutput;
 
-CLOSE cur;
-DEALLOCATE cur;
+        DECLARE @FinalSilverId INT = (SELECT TOP (1) SilverLayerEntityId FROM @SilverOutput);
+
+        ------------------------------------------------------------
+        -- Final Output
+        ------------------------------------------------------------
+        SELECT
+            LandingzoneEntityId = @FinalLandingzoneId,
+            BronzeLayerEntityId = @FinalBronzeId,
+            SilverLayerEntityId = @FinalSilverId;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        DECLARE @ErrorSeverity INT           = ERROR_SEVERITY();
+        DECLARE @ErrorState INT              = ERROR_STATE();
+
+        RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+    END CATCH
+END;
 GO
